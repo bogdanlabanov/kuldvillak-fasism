@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="et">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kuldvillak · Diktatuurid ja fašistlik Itaalia</title>
+<style>
+  :root {
+    --bg: #0b1437;
+    --tile: #1a2a7a;
+    --tile-hover: #2438a3;
+    --used: #10183f;
+    --gold: #ffcc3d;
+    --text: #ffffff;
+    --muted: #9aa6d6;
+    --good: #2fbf71;
+    --bad: #e5484d;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Segoe UI", Arial, sans-serif;
+    display: flex;
+    flex-direction: column;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 20px;
+  }
+  h1 { margin: 0; font-size: clamp(20px, 2.6vw, 34px); color: var(--gold); letter-spacing: 1px; }
+  .controls button, .btn {
+    background: #24306b;
+    color: var(--text);
+    border: 1px solid #3a4a9a;
+    border-radius: 8px;
+    padding: 8px 14px;
+    font-size: 15px;
+    cursor: pointer;
+    margin-left: 6px;
+  }
+  .controls button:hover, .btn:hover { background: #31408a; }
+
+  /* Board */
+  #board {
+    flex: 1;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 8px;
+    padding: 0 20px;
+  }
+  .cat {
+    background: var(--tile);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: 700;
+    text-transform: uppercase;
+    font-size: clamp(14px, 1.6vw, 22px);
+    padding: 10px;
+    border-radius: 6px;
+    min-height: 70px;
+  }
+  .tile {
+    background: var(--tile);
+    color: var(--gold);
+    font-size: clamp(28px, 4vw, 56px);
+    font-weight: 800;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    text-shadow: 2px 2px 0 #000;
+    transition: background .15s;
+  }
+  .tile:hover { background: var(--tile-hover); }
+  .tile.used { background: var(--used); color: transparent; text-shadow: none; cursor: default; }
+
+  /* Scoreboard */
+  #scores {
+    display: flex;
+    gap: 10px;
+    padding: 14px 20px 18px;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .team {
+    background: #141f55;
+    border: 2px solid #2b3a85;
+    border-radius: 10px;
+    padding: 8px 14px;
+    min-width: 150px;
+    text-align: center;
+  }
+  .team .name {
+    font-size: 18px;
+    font-weight: 600;
+    outline: none;
+    border-bottom: 1px dashed transparent;
+  }
+  .team .name:focus { border-bottom-color: var(--muted); }
+  .team .pts { font-size: 30px; font-weight: 800; color: var(--gold); }
+  .team .pts.neg { color: var(--bad); }
+  .team .adj button {
+    background: none;
+    border: 1px solid #3a4a9a;
+    color: var(--muted);
+    border-radius: 6px;
+    padding: 2px 8px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+
+  /* Modal */
+  #modal {
+    position: fixed;
+    inset: 0;
+    background: rgba(4, 8, 30, .96);
+    display: none;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 30px;
+    text-align: center;
+    z-index: 10;
+  }
+  #modal.open { display: flex; }
+  #m-head { color: var(--muted); font-size: clamp(16px, 1.8vw, 24px); text-transform: uppercase; letter-spacing: 1px; }
+  #m-question { font-size: clamp(28px, 4vw, 58px); font-weight: 700; max-width: 1100px; margin: 24px 0; line-height: 1.25; }
+  #m-answer {
+    font-size: clamp(22px, 3vw, 42px);
+    color: var(--gold);
+    max-width: 1100px;
+    margin-bottom: 24px;
+    min-height: 1.3em;
+    line-height: 1.3;
+  }
+  #m-teams { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; margin-bottom: 20px; }
+  .m-team {
+    background: #141f55;
+    border-radius: 10px;
+    padding: 8px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    align-items: center;
+    min-width: 140px;
+  }
+  .m-team .nm { font-weight: 600; }
+  .m-team .row { display: flex; gap: 6px; }
+  .m-team button {
+    border: none;
+    border-radius: 6px;
+    padding: 6px 12px;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    color: #fff;
+  }
+  .m-team .ok { background: var(--good); }
+  .m-team .no { background: var(--bad); }
+  .m-team button:disabled { opacity: .35; cursor: default; }
+  .m-team input {
+    width: 110px;
+    font-size: 16px;
+    padding: 4px 6px;
+    border-radius: 6px;
+    border: 1px solid #3a4a9a;
+    background: #0b1437;
+    color: #fff;
+    text-align: center;
+  }
+  .big { font-size: 20px; padding: 12px 24px; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>KULDVILLAK · Diktatuurid ja fašistlik Itaalia</h1>
+  <div class="controls">
+    <button id="addTeam" title="Lisa grupp">+ grupp</button>
+    <button id="removeTeam" title="Eemalda viimane grupp">− grupp</button>
+    <button id="finalBtn">Lõpuküsimus</button>
+    <button id="resetBtn">Uus mäng</button>
+  </div>
+</header>
+
+<main id="board"></main>
+<section id="scores"></section>
+
+<div id="modal" role="dialog" aria-modal="true">
+  <div id="m-head"></div>
+  <div id="m-question"></div>
+  <div id="m-answer"></div>
+  <div id="m-teams"></div>
+  <div>
+    <button class="btn big" id="revealBtn">Näita vastust</button>
+    <button class="btn big" id="closeBtn">Tagasi tabelisse</button>
+  </div>
+</div>
+
+<script>
+// ===== KÜSIMUSED =====
+// Iga kategooria: nimi + 4 küsimust (100–400 punkti).
+const CATEGORIES = [
+  {
+    name: "Mõisted",
+    items: [
+      { q: "Mis keelest tuleb sõna „diktatuur“?", a: "Ladina keelest: dictare — käskima, ette kirjutama" },
+      { q: "Mida tähendab itaalia sõna fascio?", a: "Kimp, liit, ühendus" },
+      { q: "Mis on propaganda?", a: "Kihutustöö, mille eesmärk on panna inimesed omaks võtma kindlat arvamust" },
+      { q: "Mille poolest erineb totalitaarne diktatuur autoritaarsest?", a: "Totalitaarne diktatuur kontrollib ka inimeste mõtteid ja sõnavabadust" }
+    ]
+  },
+  {
+    name: "Demokraatia kriis",
+    items: [
+      { q: "Mis aastal algas ülemaailmne majanduskriis?", a: "1929" },
+      { q: "Millises rahusüsteemis olid paljud rahvad pettunud?", a: "Versailles' süsteemis" },
+      { q: "Miks leidsid pärast sõda toetust karmikäelised juhid?", a: "Sõja ajal harjuti karmi võimuga, mis juhtis riiki tõhusalt" },
+      { q: "Nimeta kolm demokraatia kriisi põhjust.", a: "Kolm järgmistest: uued valijad, sõja mõju, pettumus Versailles' süsteemis, majandusraskused, erakondade kemplemine" }
+    ]
+  },
+  {
+    name: "Diktatuuri tunnused",
+    items: [
+      { q: "Mitu parteid on diktatuuris lubatud?", a: "Üks" },
+      { q: "Mis on juhikultus?", a: "Juhi pidev ülistamine; juht on kõigile eeskujuks" },
+      { q: "Keda kuulutasid natsid sisevaenlasteks?", a: "Juute, mustlasi, slaavlasi, kommuniste" },
+      { q: "Miks räägiti poliitilisi anekdoote salaja?", a: "Anekdoodi eest võis saada vangilaagrisse või isegi surma" }
+    ]
+  },
+  {
+    name: "Mussolini",
+    items: [
+      { q: "Mis värvi särke kandsid Mussolini toetajad?", a: "Musti — mustsärklased" },
+      { q: "Mida tähendab tiitel duce?", a: "Juht" },
+      { q: "Kuidas sai Mussolini 1922. aastal peaministriks?", a: "Ähvardas marssida Roomale; kuningas määras ta peaministriks" },
+      { q: "Kelle ajalehes töötas Mussolini enne I maailmasõda ja miks ta sealt välja heideti?", a: "Sotsialistide ajalehes L'Avanti; ta pooldas sõtta astumist, sotsialistid olid sõja vastu" }
+    ]
+  },
+  {
+    name: "Välispoliitika",
+    items: [
+      { q: "Millise impeeriumi taastamine oli Mussolini eesmärk?", a: "Rooma impeeriumi" },
+      { q: "Millise Aafrika riigi vallutas Itaalia 1935–1936?", a: "Etioopia (Abessiinia)" },
+      { q: "Millise riigi vallutas Itaalia 1939. aastal?", a: "Albaania" },
+      { q: "Miks sai Itaaliast Hitleri liitlane?", a: "Etioopia sõja pärast mõistsid Suurbritannia ja Prantsusmaa Itaalia hukka ja Itaalia jäi üksi" }
+    ]
+  }
+];
+
+const FINAL = {
+  q: "Miks toetasid tavalised itaallased diktaatorit?",
+  a: "Iga põhjendatud vastus: hirm revolutsiooni ees, solvumine pärast I maailmasõda, nõrgad valitsused, töötus, lubadus taastada kord ja Itaalia suurus"
+};
+
+const POINTS = [100, 200, 300, 400];
+const STORE_KEY = "kuldvillak-diktatuurid-v1";
+
+// ===== OLEK =====
+let state = load() || freshState();
+
+function freshState() {
+  return {
+    teams: [1, 2, 3, 4].map(n => ({ name: "Grupp " + n, score: 0 })),
+    used: {}
+  };
+}
+function load() {
+  try { return JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { return null; }
+}
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* salvestamine pole kohustuslik */ }
+}
+
+// ===== TABEL =====
+const board = document.getElementById("board");
+function renderBoard() {
+  board.innerHTML = "";
+  CATEGORIES.forEach(c => {
+    const el = document.createElement("div");
+    el.className = "cat";
+    el.textContent = c.name;
+    board.appendChild(el);
+  });
+  POINTS.forEach((p, row) => {
+    CATEGORIES.forEach((c, col) => {
+      const key = col + "-" + row;
+      const b = document.createElement("button");
+      b.className = "tile" + (state.used[key] ? " used" : "");
+      b.textContent = p;
+      b.disabled = !!state.used[key];
+      b.addEventListener("click", () => openQuestion(col, row));
+      board.appendChild(b);
+    });
+  });
+}
+
+// ===== PUNKTID =====
+const scoresEl = document.getElementById("scores");
+function renderScores() {
+  scoresEl.innerHTML = "";
+  state.teams.forEach((t, i) => {
+    const box = document.createElement("div");
+    box.className = "team";
+
+    const nm = document.createElement("div");
+    nm.className = "name";
+    nm.contentEditable = "true";
+    nm.spellcheck = false;
+    nm.textContent = t.name;
+    nm.addEventListener("blur", () => { t.name = nm.textContent.trim() || ("Grupp " + (i + 1)); save(); });
+    nm.addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); nm.blur(); } });
+
+    const pts = document.createElement("div");
+    pts.className = "pts" + (t.score < 0 ? " neg" : "");
+    pts.textContent = t.score;
+
+    const adj = document.createElement("div");
+    adj.className = "adj";
+    const minus = document.createElement("button");
+    minus.textContent = "−100";
+    minus.addEventListener("click", () => { t.score -= 100; save(); renderScores(); });
+    const plus = document.createElement("button");
+    plus.textContent = "+100";
+    plus.addEventListener("click", () => { t.score += 100; save(); renderScores(); });
+    adj.append(minus, " ", plus);
+
+    box.append(nm, pts, adj);
+    scoresEl.appendChild(box);
+  });
+}
+
+// ===== KÜSIMUSE AKEN =====
+const modal = document.getElementById("modal");
+const mHead = document.getElementById("m-head");
+const mQuestion = document.getElementById("m-question");
+const mAnswer = document.getElementById("m-answer");
+const mTeams = document.getElementById("m-teams");
+const revealBtn = document.getElementById("revealBtn");
+let current = null; // { key, value } või { final: true }
+
+function openQuestion(col, row) {
+  const key = col + "-" + row;
+  if (state.used[key]) return;
+  const cat = CATEGORIES[col];
+  const item = cat.items[row];
+  current = { key, value: POINTS[row] };
+  state.used[key] = true; // avatud küsimus loetakse kasutatuks
+  save();
+  mHead.textContent = cat.name + " · " + POINTS[row];
+  mQuestion.textContent = item.q;
+  mAnswer.textContent = "";
+  mAnswer.dataset.answer = item.a;
+  mTeams.innerHTML = "";
+  revealBtn.classList.remove("hidden");
+  modal.classList.add("open");
+}
+
+function reveal() {
+  mAnswer.textContent = mAnswer.dataset.answer;
+  revealBtn.classList.add("hidden");
+  if (current && current.final) { buildFinalJudging(); return; }
+  buildTeamButtons(current.value);
+}
+
+function buildTeamButtons(value) {
+  mTeams.innerHTML = "";
+  state.teams.forEach(t => {
+    const box = document.createElement("div");
+    box.className = "m-team";
+    const nm = document.createElement("div");
+    nm.className = "nm";
+    nm.textContent = t.name;
+    const row = document.createElement("div");
+    row.className = "row";
+    const ok = document.createElement("button");
+    ok.className = "ok";
+    ok.textContent = "+" + value;
+    const no = document.createElement("button");
+    no.className = "no";
+    no.textContent = "−" + value;
+    ok.addEventListener("click", () => { t.score += value; ok.disabled = no.disabled = true; save(); renderScores(); });
+    no.addEventListener("click", () => { t.score -= value; ok.disabled = no.disabled = true; save(); renderScores(); });
+    row.append(ok, no);
+    box.append(nm, row);
+    mTeams.appendChild(box);
+  });
+}
+
+// ===== LÕPUKÜSIMUS =====
+function openFinal() {
+  current = { final: true };
+  mHead.textContent = "Lõpuküsimus · iga grupp panustab";
+  mQuestion.textContent = FINAL.q;
+  mAnswer.textContent = "";
+  mAnswer.dataset.answer = FINAL.a;
+  mTeams.innerHTML = "";
+  state.teams.forEach((t, i) => {
+    const box = document.createElement("div");
+    box.className = "m-team";
+    const nm = document.createElement("div");
+    nm.className = "nm";
+    nm.textContent = t.name + " (" + t.score + ")";
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.min = "0";
+    inp.step = "100";
+    inp.placeholder = "Panus";
+    inp.id = "wager-" + i;
+    box.append(nm, inp);
+    mTeams.appendChild(box);
+  });
+  revealBtn.classList.remove("hidden");
+  modal.classList.add("open");
+}
+
+function buildFinalJudging() {
+  const wagers = state.teams.map((t, i) => {
+    const el = document.getElementById("wager-" + i);
+    const v = Math.max(0, parseInt(el && el.value, 10) || 0);
+    return Math.min(v, Math.max(t.score, 0)); // ei saa panustada rohkem kui on
+  });
+  mTeams.innerHTML = "";
+  state.teams.forEach((t, i) => {
+    const w = wagers[i];
+    const box = document.createElement("div");
+    box.className = "m-team";
+    const nm = document.createElement("div");
+    nm.className = "nm";
+    nm.textContent = t.name + " · panus " + w;
+    const row = document.createElement("div");
+    row.className = "row";
+    const ok = document.createElement("button");
+    ok.className = "ok";
+    ok.textContent = "Õige";
+    const no = document.createElement("button");
+    no.className = "no";
+    no.textContent = "Vale";
+    ok.addEventListener("click", () => { t.score += w; ok.disabled = no.disabled = true; save(); renderScores(); });
+    no.addEventListener("click", () => { t.score -= w; ok.disabled = no.disabled = true; save(); renderScores(); });
+    row.append(ok, no);
+    box.append(nm, row);
+    mTeams.appendChild(box);
+  });
+}
+
+function closeModal() {
+  modal.classList.remove("open");
+  current = null;
+  renderBoard();
+}
+
+// ===== NUPUD =====
+revealBtn.addEventListener("click", reveal);
+document.getElementById("closeBtn").addEventListener("click", closeModal);
+document.getElementById("finalBtn").addEventListener("click", openFinal);
+document.getElementById("resetBtn").addEventListener("click", () => {
+  if (!window.confirm("Alustada uut mängu? Punktid kustutatakse.")) return;
+  state = freshState();
+  save();
+  renderBoard();
+  renderScores();
+});
+document.getElementById("addTeam").addEventListener("click", () => {
+  if (state.teams.length >= 8) return;
+  state.teams.push({ name: "Grupp " + (state.teams.length + 1), score: 0 });
+  save();
+  renderScores();
+});
+document.getElementById("removeTeam").addEventListener("click", () => {
+  if (state.teams.length <= 1) return;
+  state.teams.pop();
+  save();
+  renderScores();
+});
+document.addEventListener("keydown", e => {
+  if (!modal.classList.contains("open")) return;
+  if (e.target.tagName === "INPUT") return;
+  if (e.key === "Escape") closeModal();
+  if (e.key === " " && !revealBtn.classList.contains("hidden")) { e.preventDefault(); reveal(); }
+});
+
+renderBoard();
+renderScores();
+</script>
+</body>
+</html>
